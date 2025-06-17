@@ -116,7 +116,7 @@ export default function LandingPage() {
             Account!
           </h1>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit} suppressHydrationWarning>
             <div className="relative">
               <Input
                 type="text"
@@ -124,6 +124,7 @@ export default function LandingPage() {
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 className="w-full px-4 py-3 rounded-full border-0 bg-white/90 backdrop-blur-sm placeholder:text-gray-500 text-gray-800 focus:ring-2 focus:ring-blue-500"
+                suppressHydrationWarning
               />
             </div>
 
@@ -134,11 +135,13 @@ export default function LandingPage() {
                 value={formData.password}
                 onChange={(e) => handleInputChange("password", e.target.value)}
                 className="w-full px-4 py-3 pr-12 rounded-full border-0 bg-white/90 backdrop-blur-sm placeholder:text-gray-500 text-gray-800 focus:ring-2 focus:ring-blue-500"
+                suppressHydrationWarning
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                suppressHydrationWarning
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -151,11 +154,13 @@ export default function LandingPage() {
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                 className="w-full px-4 py-3 pr-12 rounded-full border-0 bg-white/90 backdrop-blur-sm placeholder:text-gray-500 text-gray-800 focus:ring-2 focus:ring-blue-500"
+                suppressHydrationWarning
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                suppressHydrationWarning
               >
                 {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -167,6 +172,7 @@ export default function LandingPage() {
                 checked={formData.agreeToTerms}
                 onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
                 className="border-white data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                suppressHydrationWarning
               />
               <label htmlFor="terms" className="text-white text-sm">
                 I agree to the Terms & Conditions
@@ -177,6 +183,7 @@ export default function LandingPage() {
               type="submit"
               disabled={!formData.agreeToTerms}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              suppressHydrationWarning
             >
               Sign Up
             </Button>
@@ -193,6 +200,7 @@ export default function LandingPage() {
               type="button"
               onClick={handleGoogleSignup}
               className="w-full py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-full transition-colors duration-200 flex items-center justify-center border border-gray-300"
+              suppressHydrationWarning
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
@@ -215,44 +223,39 @@ export default function LandingPage() {
               Sign up with Google
             </Button>
 
-            <div className="text-center pt-2">
-              <span className="text-white">Or </span>
+            {/* Login Link */}
+            <div className="text-center">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setShowLoginModal(true)
-                }}
-                className="text-white underline hover:no-underline bg-transparent border-none cursor-pointer"
+                onClick={() => setShowLoginModal(true)}
+                className="text-white hover:text-blue-200 text-sm underline"
+                suppressHydrationWarning
               >
-                Login
+                Already have an account? Login
               </button>
             </div>
           </form>
         </div>
 
-        {/* Right Side - Updated Image */}
-        <div className="hidden lg:block w-full max-w-lg">
-          <Image
-            src="/images/productivity-illustration.png"
-            alt="Time tracking and productivity illustration with clock, calendar, and people managing tasks"
-            width={600}
-            height={400}
-            className="w-full h-auto object-contain"
-            priority
-          />
+        {/* Right Side - Image */}
+        <div className="hidden lg:block w-1/2">
+          <div className="flex justify-center">
+            <Image
+              src="/images/productivity-illustration.png"
+              alt="Productivity Illustration"
+              width={500}
+              height={500}
+              className="rounded-lg shadow-2xl"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Login Modal */}
       {showLoginModal && (
         <LoginModal
-          onClose={(e) => {
-            if (e) {
-              e.preventDefault()
-              e.stopPropagation()
-            }
-            setShowLoginModal(false)
-          }}
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
         />
       )}
     </div>

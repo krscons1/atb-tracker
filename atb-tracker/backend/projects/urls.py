@@ -1,9 +1,13 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     ProjectListCreateView, ProjectRetrieveUpdateDestroyView, ClientListCreateView, ClientRetrieveUpdateDestroyView,
     TaskListCreateView, TaskRetrieveUpdateDestroyView, CompletedTaskCountView, CompletedProjectCountView,
-    TimeEntryListCreateView, TimeEntryRetrieveUpdateDestroyView
+    TimeEntryListCreateView, TimeEntryRetrieveUpdateDestroyView, TagViewSet
 )
+
+router = DefaultRouter()
+router.register(r'tags', TagViewSet, basename='tag')
 
 urlpatterns = [
     path('', ProjectListCreateView.as_view(), name='project-list-create'),
@@ -18,4 +22,6 @@ urlpatterns = [
     # TimeEntry endpoints
     path('time-entries/', TimeEntryListCreateView.as_view(), name='timeentry-list-create'),
     path('time-entries/<int:pk>/', TimeEntryRetrieveUpdateDestroyView.as_view(), name='timeentry-detail'),
+    # Tag endpoints
+    path('', include(router.urls)),
 ]

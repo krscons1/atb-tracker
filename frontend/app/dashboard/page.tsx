@@ -28,7 +28,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { NavigationLink } from "@/components/navigation-link"
 import { ClientsPage } from "@/components/clients-page"
-import { TeamPage } from "@/components/team-page"
 import { ReportsPage } from "@/components/reports-page"
 import { ProjectsPage } from "@/components/projects-page"
 import { SettingsPage } from "@/components/settings-page"
@@ -502,8 +501,6 @@ useEffect(() => {
       setActiveNavItem("Clients")
     } else if (label === "TIME TRACKER") {
       setActiveNavItem("Home")
-    } else if (label === "TEAM") {
-      setActiveNavItem("Teams")
     } else if (label === "REPORTS") {
       setActiveNavItem("Reports")
     } else if (label === "PROJECTS") {
@@ -523,13 +520,12 @@ useEffect(() => {
     { icon: BarChart3, label: "DASHBOARD" },
     { icon: BarChart3, label: "REPORTS", hasSubmenu: true, active: activePage === "REPORTS" },
     { icon: FolderOpen, label: "PROJECTS", active: activePage === "PROJECTS" },
-    { icon: Users, label: "TEAM", active: activePage === "TEAM" },
     { icon: UserCheck, label: "CLIENTS", active: activePage === "CLIENTS" },
     { icon: Tag, label: "TAGS", active: activePage === "TAGS" },
     { icon: Settings, label: "SETTINGS", active: activePage === "SETTINGS" },
   ]
 
-  const navItems = ["Home", "Reports", "Projects", "Clients", "Teams", "Settings"]
+  const navItems = ["Home", "Reports", "Projects", "Clients", "Settings"]
 
   // Hydration-safe recentProjects state
   const [recentProjects, setRecentProjects] = useState<any[] | null>(null);
@@ -550,7 +546,7 @@ useEffect(() => {
       case "CLIENTS":
         return <ClientsPage />
       case "TEAM":
-        return <TeamPage />
+        return <ReportsPage />
       case "REPORTS":
         return <ReportsPage />
       case "PROJECTS":

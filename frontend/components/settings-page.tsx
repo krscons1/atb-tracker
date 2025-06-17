@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@/components/auth/auth-context"
 import {
   User,
   Bell,
@@ -27,6 +28,7 @@ import {
   Wifi,
   Database,
   FileText,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,8 +41,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function SettingsPage() {
+  const { user, isAuthenticated, logout } = useAuth()
+  
   // Profile Settings
   const [profileData, setProfileData] = useState({
     first_name: "",
@@ -58,25 +73,51 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     async function fetchProfile() {
       setLoading(true)
       try {
-        const res = await fetch("/api/user-settings/profile/", {
-          credentials: "include"
+        const token = localStorage.getItem('authToken')
+        console.log("DEBUG: Token from localStorage:", token ? token.substring(0, 20) + "..." : "No token")
+        if (!token || !isAuthenticated) {
+          setError("No authentication token found")
+          setLoading(false)
+          return
+        }
+
+        console.log("DEBUG: Making request to /api/user-settings/profile")
+        const res = await fetch("/api/user-settings/profile", {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         })
-        if (!res.ok) throw new Error("Failed to fetch profile")
+        console.log("DEBUG: Response status:", res.status)
+        if (!res.ok) {
+          const errorText = await res.text()
+          console.log("DEBUG: Error response:", errorText)
+          throw new Error("Failed to fetch profile")
+        }
         const data = await res.json()
+        console.log("DEBUG: Profile data received:", data)
         setProfileData(data)
       } catch (err) {
+        console.error("DEBUG: Error in fetchProfile:", err)
         setError("Could not load profile.")
       } finally {
         setLoading(false)
       }
     }
-    fetchProfile()
-  }, [])
+    
+    if (isAuthenticated) {
+      fetchProfile()
+    } else {
+      setLoading(false)
+      setError("Please log in to access settings")
+    }
+  }, [isAuthenticated])
 
   const handleProfileUpdate = (field: string, value: string) => {
     setProfileData((prev) => ({ ...prev, [field]: value }))
@@ -87,18 +128,68 @@ export function SettingsPage() {
     setSuccess(false)
     setError("")
     try {
-      const res = await fetch("/api/user-settings/profile/", {
+      const token = localStorage.getItem('authToken')
+      console.log("DEBUG: Save - Token from localStorage:", token ? token.substring(0, 20) + "..." : "No token")
+      if (!token) {
+        setError("No authentication token found")
+        setLoading(false)
+        return
+      }
+
+      console.log("DEBUG: Making PUT request to /api/user-settings/profile")
+      const res = await fetch("/api/user-settings/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(profileData)
       })
-      if (!res.ok) throw new Error("Failed to save profile")
+      console.log("DEBUG: Save - Response status:", res.status)
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.log("DEBUG: Save - Error response:", errorText)
+        throw new Error("Failed to save profile")
+      }
       setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
+      console.error("DEBUG: Error in handleSave:", err)
       setError("Could not save profile.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true)
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setError("No authentication token found")
+        setDeleteLoading(false)
+        return
+      }
+
+      const res = await fetch("/api/user-settings/delete-account", {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to delete account")
+      }
+
+      // Use the auth context logout function
+      await logout()
+    } catch (err) {
+      setError(`Could not delete account: ${err.message}`)
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -292,6 +383,45 @@ export function SettingsPage() {
                         <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <Separator />
+
+                  {/* Danger Zone */}
+                  <div className="border border-red-200 rounded-lg p-6 bg-red-50">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                      <h3 className="text-lg font-semibold text-red-800">Danger Zone</h3>
+                    </div>
+                    <p className="text-red-700 mb-4">
+                      Once you delete your account, there is no going back. Please be certain.
+                    </p>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={deleteLoading}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {deleteLoading ? "Deleting..." : "Delete Account"}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your account
+                            and remove all your data from our servers.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteAccount}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete Account
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </Card>

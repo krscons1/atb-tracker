@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/', include('pomodoro.urls')),
     path('api/user-settings/', include('user_settings.urls')),
+    path('api/auth/', include('auth_app.urls')),
 ]

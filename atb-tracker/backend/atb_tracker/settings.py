@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'projects',
     'users',
     'user_settings',
+    'auth_app',
 ]
 
 MIDDLEWARE = [

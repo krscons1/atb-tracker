@@ -97,15 +97,6 @@ export function ProjectsPage() {
   const [showTaskCreation, setShowTaskCreation] = useState(false)
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState<string>("")
 
-  // State to store all team members that have been added across projects
-  const [allTeamMembers, setAllTeamMembers] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedMembers = localStorage.getItem("allTeamMembers")
-      return savedMembers ? JSON.parse(savedMembers) : []
-    }
-    return []
-  })
-
   // New states for API integration
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -168,14 +159,6 @@ export function ProjectsPage() {
       localStorage.removeItem("selectedProject")
     }
   }, [])
-
-
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("allTeamMembers", JSON.stringify(allTeamMembers))
-    }
-  }, [allTeamMembers])
 
   // Fetch projects from API
   useEffect(() => {
@@ -365,10 +348,6 @@ const handleStatusChange = async (projectId: number, newStatus: string) => {
     setStatusLoading((prev) => ({ ...prev, [projectId]: false }));
   }
 }
-
-  const handleUpdateTeamMembers = (members: string[]) => {
-    setAllTeamMembers(members)
-  }
 
   const handleSaveProject = async (projectData: any) => {
     if (selectedProject) {
@@ -881,8 +860,6 @@ const handleStatusChange = async (projectId: number, newStatus: string) => {
         }}
         onSave={handleSaveProject}
         project={selectedProject}
-        existingTeamMembers={allTeamMembers}
-        onUpdateTeamMembers={handleUpdateTeamMembers}
       />
     </>
   )

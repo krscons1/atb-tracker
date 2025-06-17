@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from rest_framework import generics, permissions
-from .models import Project, Client, Task, TimeEntry
-from .serializers import ProjectSerializer, ClientSerializer, TaskSerializer, TimeEntrySerializer
+from rest_framework import generics, permissions, viewsets
+from .models import Project, Client, Task, TimeEntry, Tag
+from .serializers import ProjectSerializer, ClientSerializer, TaskSerializer, TimeEntrySerializer, TagSerializer
 
 class ProjectListCreateView(generics.ListCreateAPIView):
     queryset = Project.objects.all()
@@ -143,3 +143,7 @@ class ProjectRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 # 7. If you use a custom primary key (not 'id'), make sure <int:pk> matches your model's PK.
 
 # 8. If you use DRF's DefaultRouter or ViewSets, the URL pattern may be different.
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { signInWithGoogle } from "@/lib/firebase"
 
 interface GoogleAuthButtonProps {
   mode: "signup" | "login"
@@ -16,32 +17,47 @@ export function GoogleAuthButton({ mode, onSuccess, onError }: GoogleAuthButtonP
     setIsLoading(true)
 
     try {
-      // In a real implementation, you would use Google OAuth
-      // For demo purposes, we'll simulate the flow
+      // Use Firebase Google authentication
+      const { user, idToken } = await signInWithGoogle()
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Send the ID token to backend for verification and user creation/login
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          idToken,
+          mode, // 'signup' or 'login'
+          user: {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            picture: user.photoURL,
+            provider: user.provider
+          }
+        })
+      })
 
-      // Simulate successful authentication
-      const mockUser = {
-        id: "google_" + Date.now(),
-        email: "user@gmail.com",
-        name: "John Doe",
-        picture: "https://lh3.googleusercontent.com/a/default-user=s96-c",
-        provider: "google",
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Authentication failed')
       }
 
-      // Store user data in localStorage (in real app, use proper auth state management)
-      localStorage.setItem("user", JSON.stringify(mockUser))
+      const data = await response.json()
+
+      // Store user data in localStorage
+      localStorage.setItem("user", JSON.stringify(data.user))
       localStorage.setItem("isAuthenticated", "true")
+      localStorage.setItem("authToken", data.token)
 
       // Redirect to dashboard
       window.location.href = "/dashboard"
 
       onSuccess?.()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Google auth error:", error)
-      onError?.("Failed to authenticate with Google. Please try again.")
+      onError?.(error.message || "Failed to authenticate with Google. Please try again.")
     } finally {
       setIsLoading(false)
     }

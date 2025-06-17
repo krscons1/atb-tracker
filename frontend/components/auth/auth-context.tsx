@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useAuth } from "@/components/auth/auth-context";
+import { onAuthStateChanged, signOut as firebaseSignOut } from "@/lib/firebase"
 
 interface User {
   id: string
@@ -14,9 +14,10 @@ interface User {
 interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
-  login: (user: User) => void
-  logout: () => void
   isLoading: boolean
+  login: (userData: User) => void
+  logout: () => void
+  verifyToken: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -26,29 +27,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  const verifyToken = async (): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem("authToken")
+      if (!token) return false
+
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+        setIsAuthenticated(true)
+        return true
+      } else {
+        // Token is invalid, clear storage
+        localStorage.removeItem("user")
+        localStorage.removeItem("isAuthenticated")
+        localStorage.removeItem("authToken")
+        setUser(null)
+        setIsAuthenticated(false)
+        return false
+      }
+    } catch (error) {
+      console.error("Token verification error:", error)
+      return false
+    }
+  }
+
   useEffect(() => {
     // Check for existing authentication on mount
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const storedUser = localStorage.getItem("user")
-        const storedAuth = localStorage.getItem("isAuthenticated")
+        // First check if we have a token and verify it
+        const tokenValid = await verifyToken()
+        
+        if (!tokenValid) {
+          // If no valid token, check localStorage as fallback
+          const storedUser = localStorage.getItem("user")
+          const storedAuth = localStorage.getItem("isAuthenticated")
 
-        if (storedUser && storedAuth === "true") {
-          const userData = JSON.parse(storedUser)
-          setUser(userData)
-          setIsAuthenticated(true)
+          if (storedUser && storedAuth === "true") {
+            const userData = JSON.parse(storedUser)
+            setUser(userData)
+            setIsAuthenticated(true)
+          }
         }
       } catch (error) {
         console.error("Error checking authentication:", error)
         // Clear invalid data
         localStorage.removeItem("user")
         localStorage.removeItem("isAuthenticated")
+        localStorage.removeItem("authToken")
       } finally {
         setIsLoading(false)
       }
     }
 
     checkAuth()
+
+    // Listen to Firebase auth state changes
+    const unsubscribe = onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in with Firebase
+        const userData = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || '',
+          picture: firebaseUser.photoURL || undefined,
+          provider: 'google' as const
+        }
+        setUser(userData)
+        setIsAuthenticated(true)
+        localStorage.setItem("user", JSON.stringify(userData))
+        localStorage.setItem("isAuthenticated", "true")
+      } else {
+        // User is signed out from Firebase
+        setUser(null)
+        setIsAuthenticated(false)
+        localStorage.removeItem("user")
+        localStorage.removeItem("isAuthenticated")
+        localStorage.removeItem("authToken")
+      }
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const login = (userData: User) => {
@@ -58,17 +126,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("isAuthenticated", "true")
   }
 
-  const logout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
-    localStorage.removeItem("user")
-    localStorage.removeItem("isAuthenticated")
-    window.location.href = "/"
-    setTimeout(() => window.location.reload(), 100)
+  const logout = async () => {
+    try {
+      // Sign out from Firebase
+      await firebaseSignOut()
+      
+      // Clear local storage
+      localStorage.removeItem("user")
+      localStorage.removeItem("isAuthenticated")
+      localStorage.removeItem("authToken")
+      
+      // Clear auth token on backend
+      const token = localStorage.getItem("authToken")
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token })
+        })
+      }
+      
+      setUser(null)
+      setIsAuthenticated(false)
+      window.location.href = "/"
+      setTimeout(() => window.location.reload(), 100)
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Force logout even if there's an error
+      setUser(null)
+      setIsAuthenticated(false)
+      localStorage.removeItem("user")
+      localStorage.removeItem("isAuthenticated")
+      localStorage.removeItem("authToken")
+      window.location.href = "/"
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, isLoading }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, isLoading, verifyToken }}>
+      {children}
+    </AuthContext.Provider>
   )
 }
 

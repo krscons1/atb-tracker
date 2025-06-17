@@ -2,6 +2,14 @@ from django.db import models
 
 # Create your models here.
 
+class Tag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    color = models.CharField(max_length=20, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
 class Client(models.Model):
     name = models.CharField(max_length=255, unique=True)
 
@@ -13,6 +21,7 @@ class Project(models.Model):
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, blank=True, null=True, related_name='projects')
     status = models.CharField(max_length=50, default="Planning")
     progress = models.IntegerField(default=0)
+    tags = models.ManyToManyField(Tag, blank=True, related_name='projects')
 
     def __str__(self):
         return self.name
