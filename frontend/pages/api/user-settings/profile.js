@@ -34,7 +34,11 @@ export default async function handler(req, res) {
       let fetchOptions;
       if (contentType && contentType.includes('multipart/form-data')) {
         // Remove content-type header so fetch sets the correct boundary
-        const headers = { 'Authorization': token };
+        // Forward the original Content-Type (including boundary) to Django
+        const headers = {
+          'Authorization': token,
+          'Content-Type': contentType,
+        };
         // Use raw-body to read the body
         const rawBody = await getRawBody(req);
         fetchOptions = {

@@ -89,22 +89,29 @@ export function SettingsPage() {
           return
         }
 
-        console.log("DEBUG: Making request to /api/user-settings/profile")
-        const res = await fetch("/api/user-settings/profile", {
+        console.log("DEBUG: Making request to /api/user-settings/profile/");
+        const res = await fetch("/api/user-settings/profile/", {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${token}`
+            // No Content-Type for GET
           }
-        })
-        console.log("DEBUG: Response status:", res.status)
-        if (!res.ok) {
-          const errorText = await res.text()
-          console.log("DEBUG: Error response:", errorText)
-          throw new Error("Failed to fetch profile")
+        });
+        console.log("DEBUG: Response status:", res.status);
+        if (res.status === 401 || res.status === 403) {
+          setError("Authentication failed. Please log in again.");
+          setLoading(false);
+          logout();
+          return;
         }
-        const data = await res.json()
-        console.log("DEBUG: Profile data received:", data)
-        setProfileData(data)
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.log("DEBUG: Error response:", errorText);
+          throw new Error("Failed to fetch profile");
+        }
+        const data = await res.json();
+        console.log("DEBUG: Profile data received:", data);
+        setProfileData(data);
+
       } catch (err) {
         console.error("DEBUG: Error in fetchProfile:", err)
         setError("Could not load profile.")

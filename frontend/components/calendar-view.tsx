@@ -419,7 +419,7 @@ export function CalendarView() {
                   </SelectTrigger>
                   <SelectContent>
                     {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.name}>
+                      <SelectItem key={project.id} value={String(project.id)}>
                         <div className="flex items-center">
                           <div className={`w-3 h-3 rounded-full ${project.color} mr-2`}></div>
                           {project.name}
@@ -535,14 +535,26 @@ export function CalendarView() {
                     {entries.slice(0, 3).map((entry) => (
                       <div
                         key={entry.id}
-                        className={`${entry.projectColor} text-white rounded-md p-1 text-xs cursor-pointer hover:opacity-90 transition-opacity`}
+                        className={`${entry.projectColor} text-white rounded-md p-1 text-xs cursor-pointer hover:opacity-90 transition-opacity flex items-center justify-between`}
                         onClick={() => startEditEntry(entry)}
                       >
-                        <div className="font-medium truncate">{entry.project}</div>
-                        <div className="flex items-center justify-between">
-                          <span className="truncate">{entry.description}</span>
-                          <span>{formatDuration(entry.duration)}</span>
+                        <div>
+                          <div className="font-medium truncate">{entry.project}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="truncate">{entry.description}</span>
+                            <span>{formatDuration(entry.duration)}</span>
+                          </div>
                         </div>
+                        <button
+                          className="ml-2 text-white hover:text-red-300"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteEntry(entry.id);
+                          }}
+                          title="Delete entry"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     ))}
 

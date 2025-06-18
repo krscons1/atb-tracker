@@ -13,7 +13,7 @@ class UserProfile(models.Model):
     location = models.CharField(max_length=150, blank=True)
     website = models.URLField(max_length=255, blank=True)
     timezone = models.CharField(max_length=100, blank=True)
-    avatar = models.URLField(max_length=255, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.name} Profile"

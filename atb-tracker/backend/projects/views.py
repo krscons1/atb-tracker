@@ -64,6 +64,9 @@ class CompletedProjectCountView(APIView):
         return Response({"completed_projects": qs.count()})
 
 # --- TimeEntry Views ---
+from rest_framework.response import Response
+from rest_framework import status
+
 class TimeEntryListCreateView(generics.ListCreateAPIView):
     serializer_class = TimeEntrySerializer
     permission_classes = [AllowAny]
@@ -74,6 +77,16 @@ class TimeEntryListCreateView(generics.ListCreateAPIView):
         if entry_type:
             queryset = queryset.filter(type=entry_type)
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            print("[TimeEntryListCreateView] Validation errors:", serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_create(serializer)
+        print("[TimeEntryListCreateView] Created entry:", serializer.data)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class TimeEntryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = TimeEntry.objects.all()
