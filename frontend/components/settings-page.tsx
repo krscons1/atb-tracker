@@ -69,7 +69,9 @@ export function SettingsPage() {
     website: "",
     timezone: "",
     avatar: "",
-  })
+  });
+  // Store avatar file separately for FormData
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
@@ -124,40 +126,47 @@ export function SettingsPage() {
   }
 
   const handleSave = async () => {
-    setLoading(true)
-    setSuccess(false)
-    setError("")
+    setLoading(true);
+    setSuccess(false);
+    setError("");
     try {
-      const token = localStorage.getItem('authToken')
-      console.log("DEBUG: Save - Token from localStorage:", token ? token.substring(0, 20) + "..." : "No token")
+      const token = localStorage.getItem('authToken');
       if (!token) {
-        setError("No authentication token found")
-        setLoading(false)
-        return
+        setError("No authentication token found");
+        setLoading(false);
+        return;
       }
-
-      console.log("DEBUG: Making PUT request to /api/user-settings/profile")
+      // Use FormData for avatar + profile fields
+      const formData = new FormData();
+      Object.entries(profileData).forEach(([key, value]) => {
+        // Skip avatar (handled below)
+        if (key !== 'avatar') {
+          formData.append(key, value ?? '');
+        }
+      });
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+      // If no avatar file, optionally send avatar as empty string (depends on backend)
+      // formData.append('avatar', '');
       const res = await fetch("/api/user-settings/profile", {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
+        method: "PATCH",
+        headers: {
           'Authorization': `Bearer ${token}`
+          // DO NOT set Content-Type; browser will set multipart boundary
         },
-        body: JSON.stringify(profileData)
-      })
-      console.log("DEBUG: Save - Response status:", res.status)
+        body: formData
+      });
       if (!res.ok) {
-        const errorText = await res.text()
-        console.log("DEBUG: Save - Error response:", errorText)
-        throw new Error("Failed to save profile")
+        const errorText = await res.text();
+        throw new Error("Failed to save profile: " + errorText);
       }
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
-    } catch (err) {
-      console.error("DEBUG: Error in handleSave:", err)
-      setError("Could not save profile.")
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError("Could not save profile. " + (err?.message || ''));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -187,28 +196,33 @@ export function SettingsPage() {
       // Use the auth context logout function
       await logout()
     } catch (err) {
-      setError(`Could not delete account: ${err.message}`)
+      if (err instanceof Error) {
+        setError(`Could not delete account: ${err.message}`);
+      } else {
+        setError("Could not delete account: An unknown error occurred.");
+      }
     } finally {
       setDeleteLoading(false)
     }
   }
 
   const handleAvatarUpload = () => {
-    // Simulate file upload
-    const input = document.createElement("input")
-    input.type = "file"
-    input.accept = "image/*"
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
     input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
+      const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          setProfileData((prev) => ({ ...prev, avatar: e.target?.result as string }))
-        }
-        reader.readAsDataURL(file)
+        setAvatarFile(file);
+        // For preview, show the selected file as a data URL
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setProfileData((prev) => ({ ...prev, avatar: ev.target?.result as string }));
+        };
+        reader.readAsDataURL(file);
       }
-    }
-    input.click()
+    };
+    input.click();
   }
 
   return (
